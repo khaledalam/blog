@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import { SITE } from '../config';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string | null;
+  lang?: string;
+  dir?: string;
+  type?: 'website' | 'article';
+}
+const {
+  title,
+  description = SITE.description,
+  canonical = new URL(Astro.url.pathname, SITE.url).href,
+  ogImage = null,
+  lang = 'en',
+  dir = 'ltr',
+  type = 'website',
+} = Astro.props;
+const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.png`;
+---
+<!doctype html>
+<html lang={lang} dir={dir}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href={`${SITE.url}/feed.xml`} />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={img} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={img} />
+    <link rel="icon" href="/favicon.png" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Khaled Alam</a>
+        <nav>
+          <a href="https://khaledalam.net">Portfolio</a>
+          <a href="/">Blog</a>
+          <a href="/feed.xml">RSS</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        © {new Date().getFullYear()} {SITE.author} ·
+        <a href="https://khaledalam.net">khaledalam.net</a> ·
+        <a href="/feed.xml">RSS</a>
+      </div>
+    </footer>
+  </body>
+</html>

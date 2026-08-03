@@ -1,0 +1,23 @@
+---
+import { COUNTER_URL } from '../config';
+interface Props { slug: string; seed?: number; }
+const { slug, seed = 0 } = Astro.props;
+---
+<span class="views" data-slug={slug} data-seed={seed}>
+  {seed ? seed.toLocaleString() : '—'} views
+</span>
+
+{COUNTER_URL && (
+  <script is:inline define:vars={{ COUNTER_URL, slug, seed }}>
+    (async () => {
+      const el = document.currentScript.previousElementSibling;
+      try {
+        const r = await fetch(`${COUNTER_URL}/hit/${encodeURIComponent(slug)}`, { method: 'POST' });
+        if (r.ok) {
+          const { views } = await r.json();
+          if (typeof views === 'number') el.textContent = `${views.toLocaleString()} views`;
+        }
+      } catch (_) { /* keep the static seed value on failure */ }
+    })();
+  </script>
+)}

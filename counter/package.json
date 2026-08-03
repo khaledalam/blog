@@ -1,0 +1,13 @@
+{
+  "name": "blog-views",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "seed": "wrangler kv bulk put --binding=VIEWS seed-kv.json"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

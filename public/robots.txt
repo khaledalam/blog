@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://blog.khaledalam.net/sitemap-index.xml

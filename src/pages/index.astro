@@ -1,0 +1,37 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../config';
+import posts from '../data/posts.json';
+
+const items = posts.map(p => ({
+  slug: p.slug,
+  title: p.title,
+  description: p.description,
+  date: p.date,
+  views: p.views,
+  readingMinutes: p.readingMinutes,
+  dir: p.dir,
+  lang: p.lang,
+}));
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+<Base title={SITE.title} description={SITE.description}>
+  <h1 style="margin-top:2rem;">Blog</h1>
+  <p style="color:var(--muted);">
+    Software engineering, PHP internals, AI, and side projects. {items.length} posts.
+  </p>
+  <ul class="post-list">
+    {items.map(p => (
+      <li>
+        <h2><a href={`/${p.slug}/`} lang={p.lang} dir={p.dir}>{p.title}</a></h2>
+        <div class="meta">
+          <span>{fmt(p.date)}</span>
+          <span>· {p.readingMinutes} min read</span>
+          <span>· {p.views.toLocaleString()} views</span>
+        </div>
+        <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
+      </li>
+    ))}
+  </ul>
+</Base>

@@ -1,0 +1,50 @@
+---
+import Base from '../layouts/Base.astro';
+import Views from '../components/Views.astro';
+import Comments from '../components/Comments.astro';
+import { SITE } from '../config';
+import posts from '../data/posts.json';
+
+export function getStaticPaths() {
+  return posts.map(p => ({
+    // Decode %-encoded (Arabic) slugs so the emitted directory is UTF-8;
+    // requests to the original encoded WordPress URL decode to the same path.
+    params: { slug: decodeURIComponent(p.slug) },
+    props: { post: p },
+  }));
+}
+
+const { post } = Astro.props;
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+const canonical = new URL(`/${post.slug}/`, SITE.url).href;
+---
+<Base
+  title={post.seoTitle}
+  description={post.description}
+  canonical={canonical}
+  ogImage={post.hero}
+  lang={post.lang}
+  dir={post.dir}
+  type="article"
+>
+  <article lang={post.lang} dir={post.dir}>
+    <a class="back" href="/" dir="ltr">← All posts</a>
+    <h1>{post.title}</h1>
+    <div class="meta" dir="ltr">
+      <span>{fmt(post.date)}</span>
+      <span>· {post.readingMinutes} min read</span>
+      <span>· <Views slug={post.slug} seed={post.views} /></span>
+    </div>
+    {post.hero && (
+      <img class="article-hero" src={post.hero} alt={post.heroAlt} loading="eager" />
+    )}
+    <div class="post-body" set:html={post.html} />
+    {post.tags.length > 0 && (
+      <div class="tags" dir="ltr">
+        {post.tags.map((t: string) => <span>{t}</span>)}
+      </div>
+    )}
+  </article>
+  <Comments />
+</Base>
