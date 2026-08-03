@@ -19,10 +19,12 @@ export const COUNTER_URL = '';
 // on the repo and installing the giscus GitHub App: https://giscus.app
 export const GISCUS = {
   repo: 'khaledalam/blog',
-  repoId: '',        // e.g. R_kgDO...
-  category: 'General',
-  categoryId: '',    // e.g. DIC_kwDO...
+  repoId: 'R_kgDOTr9qUw',
+  category: 'Announcements',
+  categoryId: 'DIC_kwDOTr9qU84DCjOl',
   mapping: 'pathname',
   reactionsEnabled: '1',
   theme: 'preferred_color_scheme',
 };
+// NOTE: comments render only after the giscus GitHub App is installed on this
+// repo — install at https://github.com/apps/giscus (one-time, browser step).
