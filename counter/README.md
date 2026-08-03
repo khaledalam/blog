@@ -17,7 +17,7 @@ npx wrangler login
 npx wrangler kv namespace create VIEWS
 
 # 3. Seed the existing view counts (31 posts, 77,516 views)
-npx wrangler kv bulk put --binding=VIEWS seed-kv.json
+npx wrangler kv bulk put seed-kv.json --binding=VIEWS
 
 # 4. Deploy the worker
 npx wrangler deploy
@@ -54,5 +54,5 @@ under this.
 ## Verify seeded data
 
 ```bash
-npx wrangler kv key get --binding=VIEWS "v:contributing-to-php-core"   # -> 1573
+npx wrangler kv key get "v:contributing-to-php-core" --binding=VIEWS   # -> 1573
 ```

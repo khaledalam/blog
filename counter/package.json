@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "seed": "wrangler kv bulk put --binding=VIEWS seed-kv.json"
+    "seed": "wrangler kv bulk put seed-kv.json --binding=VIEWS"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
