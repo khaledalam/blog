@@ -1,10 +1,26 @@
 ---
 import { GISCUS } from '../config';
-const enabled = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
+
+interface Props { title: string; slug: string; }
+const { title, slug } = Astro.props;
+
+// giscus needs its GitHub App installed on the repo (browser-only OAuth). Until
+// that happens it renders "giscus is not installed on this repository" to every
+// reader, so we fall back to plain GitHub Discussions links, which need no app
+// and work today. Flip GISCUS.enabled once the app is installed.
+const giscusOn = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
+
+// "General" rather than the giscus category: Announcements is maintainer-only,
+// so readers could not open a thread there.
+const newThread =
+  `https://github.com/${GISCUS.repo}/discussions/new` +
+  `?category=general&title=${encodeURIComponent(title)}` +
+  `&body=${encodeURIComponent(`Re: https://blog.khaledalam.net/${slug}/\n\n`)}`;
+const allThreads = `https://github.com/${GISCUS.repo}/discussions`;
 ---
-{enabled ? (
-  <section class="comments">
-    <h2>Comments</h2>
+<section class="comments">
+  <h2>Comments</h2>
+  {giscusOn ? (
     <script
       src="https://giscus.app/client.js"
       data-repo={GISCUS.repo}
@@ -21,5 +37,11 @@ const enabled = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
       crossorigin="anonymous"
       async
     ></script>
-  </section>
-) : null}
+  ) : (
+    <p class="comments-fallback">
+      <a href={newThread} target="_blank" rel="noopener">Discuss this post on GitHub</a>
+      <span> · </span>
+      <a href={allThreads} target="_blank" rel="noopener">browse all discussions</a>
+    </p>
+  )}
+</section>
