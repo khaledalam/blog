@@ -11,6 +11,16 @@ interface Props {
   dir?: string;
   type?: 'website' | 'article';
   jsonLd?: Record<string, unknown>[];
+  imageAlt?: string | null;
+  imageW?: number | null;
+  imageH?: number | null;
+  noindex?: boolean;
+  articleMeta?: {
+    published?: string;
+    modified?: string;
+    section?: string[];
+    tags?: string[];
+  } | null;
 }
 const {
   title,
@@ -21,8 +31,16 @@ const {
   dir = 'ltr',
   type = 'website',
   jsonLd = [],
+  imageAlt = null,
+  imageW = null,
+  imageH = null,
+  noindex = false,
+  articleMeta = null,
 } = Astro.props;
 const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.png`;
+// og-default.png is 1200x630; only override when the page supplied its own hero.
+const [ogW, ogH] = ogImage && imageW && imageH ? [imageW, imageH] : [1200, 630];
+const ogLocale = lang === 'ar' ? 'ar_AR' : 'en_US';
 
 // One @graph per page: the site, the person behind it, then whatever the page
 // itself is. Nodes cross-reference by @id so Google resolves a single entity.
@@ -53,18 +71,44 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="author" content={SITE.author} />
+    <meta
+      name="robots"
+      content={noindex
+        ? 'noindex, follow'
+        : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
+    />
+    <meta name="theme-color" content="#0a0a0f" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href={`${SITE.url}/feed.xml`} />
     <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE.title} />
+    <meta property="og:locale" content={ogLocale} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={img} />
+    <meta property="og:image:width" content={String(ogW)} />
+    <meta property="og:image:height" content={String(ogH)} />
+    {imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+    {articleMeta?.published && (
+      <meta property="article:published_time" content={articleMeta.published} />
+    )}
+    {articleMeta?.modified && (
+      <meta property="article:modified_time" content={articleMeta.modified} />
+    )}
+    {articleMeta && <meta property="article:author" content={SITE.authorUrl} />}
+    {articleMeta?.section?.map(s => <meta property="article:section" content={s} />)}
+    {articleMeta?.tags?.map(t => <meta property="article:tag" content={t} />)}
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@KhaledAlamXYZ" />
+    <meta name="twitter:creator" content="@KhaledAlamXYZ" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={img} />
+    {imageAlt && <meta name="twitter:image:alt" content={imageAlt} />}
     <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <script type="application/ld+json" set:html={jsonLdText} is:inline />
   </head>
   <body>

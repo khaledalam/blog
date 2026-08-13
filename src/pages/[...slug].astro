@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Views from '../components/Views.astro';
 import Comments from '../components/Comments.astro';
-import { SITE, PERSON } from '../config';
+import { SITE, PERSON, COUNTER_URL } from '../config';
 import posts from '../data/posts.json';
 
 export function getStaticPaths() {
@@ -18,8 +18,20 @@ const { post } = Astro.props;
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 const canonical = new URL(`/${post.slug}/`, SITE.url).href;
+const showViews = Boolean(COUNTER_URL) || post.views > 0;
 
 const wordCount = post.html.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+
+// Related posts: most category overlap first, then most recent. Gives every post
+// inbound internal links instead of leaving older posts reachable only from the
+// index, which is the single biggest crawl-depth problem on a flat blog.
+const related = posts
+  .filter(p => p.slug !== post.slug && p.lang === post.lang)
+  .map(p => ({ p, shared: p.categories.filter(c => post.categories.includes(c)).length }))
+  .filter(r => r.shared > 0)
+  .sort((a, b) => b.shared - a.shared || Date.parse(b.p.date) - Date.parse(a.p.date))
+  .slice(0, 3)
+  .map(r => r.p);
 const jsonLd = [
   {
     '@type': 'BlogPosting',
@@ -60,6 +72,15 @@ const jsonLd = [
   dir={post.dir}
   type="article"
   jsonLd={jsonLd}
+  imageAlt={post.heroAlt}
+  imageW={post.heroW}
+  imageH={post.heroH}
+  articleMeta={{
+    published: post.date,
+    modified: post.modified || post.date,
+    section: post.categories,
+    tags: post.tags,
+  }}
 >
   <article lang={post.lang} dir={post.dir}>
     <a class="back" href="/" dir="ltr">← All posts</a>
@@ -67,10 +88,19 @@ const jsonLd = [
     <div class="meta" dir="ltr">
       <span>{fmt(post.date)}</span>
       <span>· {post.readingMinutes} min read</span>
-      <span>· <Views slug={post.slug} seed={post.views} /></span>
+      {showViews && <span>· <Views slug={post.slug} seed={post.views} /></span>}
     </div>
     {post.hero && (
-      <img class="article-hero" src={post.hero} alt={post.heroAlt} loading="eager" />
+      <img
+        class="article-hero"
+        src={post.hero}
+        alt={post.heroAlt}
+        width={post.heroW}
+        height={post.heroH}
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
     )}
     <div class="post-body" set:html={post.html} />
     {post.tags.length > 0 && (
@@ -79,5 +109,18 @@ const jsonLd = [
       </div>
     )}
   </article>
+  {related.length > 0 && (
+    <nav class="related" aria-label="Related posts" lang={post.lang} dir={post.dir}>
+      <h2>Related posts</h2>
+      <ul>
+        {related.map(r => (
+          <li>
+            <a href={`/${r.slug}/`}>{r.title}</a>
+            <span class="meta">{fmt(r.date)} · {r.readingMinutes} min read</span>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )}
   <Comments />
 </Base>

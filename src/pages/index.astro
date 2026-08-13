@@ -53,7 +53,7 @@ const jsonLd = [
         <div class="meta">
           <span>{fmt(p.date)}</span>
           <span>· {p.readingMinutes} min read</span>
-          <span>· {p.views.toLocaleString()} views</span>
+          {p.views > 0 && <span>· {p.views.toLocaleString()} views</span>}
         </div>
         <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
       </li>

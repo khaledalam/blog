@@ -2,10 +2,15 @@
 import { COUNTER_URL } from '../config';
 interface Props { slug: string; seed?: number; }
 const { slug, seed = 0 } = Astro.props;
+// With no live counter and no seeded count there is nothing truthful to show,
+// so render nothing rather than a misleading "0 views" / "— views".
+const show = COUNTER_URL || seed > 0;
 ---
-<span class="views" data-slug={slug} data-seed={seed}>
-  {seed ? seed.toLocaleString() : '—'} views
-</span>
+{show && (
+  <span class="views" data-slug={slug} data-seed={seed}>
+    {seed ? seed.toLocaleString() : '—'} views
+  </span>
+)}
 
 {COUNTER_URL && (
   <script is:inline define:vars={{ COUNTER_URL, slug, seed }}>
