@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { SITE } from '../config';
+import { SITE, PERSON } from '../config';
 import posts from '../data/posts.json';
 
 const items = posts.map(p => ({
@@ -15,8 +15,33 @@ const items = posts.map(p => ({
 }));
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+const jsonLd = [
+  {
+    '@type': 'Blog',
+    '@id': `${SITE.url}/#blog`,
+    url: `${SITE.url}/`,
+    name: SITE.title,
+    description: SITE.description,
+    isPartOf: { '@id': `${SITE.url}/#website` },
+    author: { '@id': PERSON['@id'] },
+    publisher: { '@id': PERSON['@id'] },
+    inLanguage: [...new Set(posts.map(p => p.lang))],
+  },
+  {
+    '@type': 'ItemList',
+    '@id': `${SITE.url}/#posts`,
+    numberOfItems: items.length,
+    itemListElement: items.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`/${p.slug}/`, SITE.url).href,
+      name: p.title,
+    })),
+  },
+];
 ---
-<Base title={SITE.title} description={SITE.description}>
+<Base title={SITE.title} description={SITE.description} jsonLd={jsonLd}>
   <h1 style="margin-top:2rem;">Blog</h1>
   <p style="color:var(--muted);">
     Software engineering, PHP internals, AI, and side projects. {items.length} posts.

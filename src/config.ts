@@ -10,6 +10,27 @@ export const SITE = {
   authorUrl: 'https://khaledalam.net',
 };
 
+// Canonical identity for structured data. The @id is deliberately a
+// khaledalam.net URL and is reused verbatim in the JSON-LD on khaledalam.net,
+// so both sites describe ONE entity rather than two similarly-named people.
+// Keep name / jobTitle / image / sameAs byte-identical across both sites.
+export const PERSON = {
+  '@type': 'Person',
+  '@id': 'https://khaledalam.net/#person',
+  name: 'Khaled Alam',
+  alternateName: 'خالد علام',
+  url: 'https://khaledalam.net',
+  image: 'https://khaledalam.net/DP_Khaled.jpg',
+  jobTitle: 'Software Specialist',
+  sameAs: [
+    'https://github.com/khaledalam',
+    'https://linkedin.com/in/khaledalam',
+    'https://twitter.com/KhaledAlamXYZ',
+    'https://www.youtube.com/NinjoCoding',
+    'https://blog.khaledalam.net',
+  ],
+};
+
 // Cloudflare Worker that stores/returns per-post view counts (see /counter).
 // Set to the deployed Worker URL, e.g. https://blog-views.<sub>.workers.dev
 // Leave empty to disable the live counter (falls back to the static seed value).

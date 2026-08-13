@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { SITE } from '../config';
+import { SITE, PERSON } from '../config';
 
 interface Props {
   title: string;
@@ -10,6 +10,7 @@ interface Props {
   lang?: string;
   dir?: string;
   type?: 'website' | 'article';
+  jsonLd?: Record<string, unknown>[];
 }
 const {
   title,
@@ -19,8 +20,31 @@ const {
   lang = 'en',
   dir = 'ltr',
   type = 'website',
+  jsonLd = [],
 } = Astro.props;
 const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.png`;
+
+// One @graph per page: the site, the person behind it, then whatever the page
+// itself is. Nodes cross-reference by @id so Google resolves a single entity.
+const graph = [
+  {
+    '@type': 'WebSite',
+    '@id': `${SITE.url}/#website`,
+    url: `${SITE.url}/`,
+    name: SITE.title,
+    description: SITE.description,
+    inLanguage: 'en',
+    author: { '@id': PERSON['@id'] },
+    publisher: { '@id': PERSON['@id'] },
+  },
+  PERSON,
+  ...jsonLd,
+];
+// Escape `<` so a description containing markup can never break out of the tag.
+const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(
+  /</g,
+  '\\u003c',
+);
 ---
 <!doctype html>
 <html lang={lang} dir={dir}>
@@ -41,6 +65,7 @@ const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={img} />
     <link rel="icon" href="/favicon.png" />
+    <script type="application/ld+json" set:html={jsonLdText} is:inline />
   </head>
   <body>
     <header class="site-header">
