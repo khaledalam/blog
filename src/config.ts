@@ -38,7 +38,20 @@ export const COUNTER_URL = '';
 
 // giscus (GitHub Discussions-backed comments). Fill after enabling Discussions
 // on the repo and installing the giscus GitHub App: https://giscus.app
+//
+// `enabled` is the last switch to flip. Everything else below is already
+// correct and verified against the GitHub API (repo public, Discussions on,
+// repoId and categoryId both match). The only remaining step is installing the
+// giscus GitHub App on khaledalam/blog — a browser-only authorization at
+// https://github.com/apps/giscus that cannot be done from the CLI.
+//
+// Until that app is installed, giscus answers every request with
+//   {"error":"giscus is not installed on this repository"}
+// and renders that as a visible error box on all 32 post pages. So this stays
+// false: no comments section is better than a broken one. Flip to true and push
+// once the app is installed.
 export const GISCUS = {
+  enabled: false,
   repo: 'khaledalam/blog',
   repoId: 'R_kgDOTr9qUw',
   category: 'Announcements',

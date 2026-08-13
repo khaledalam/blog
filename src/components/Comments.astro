@@ -1,6 +1,6 @@
 ---
 import { GISCUS } from '../config';
-const enabled = GISCUS.repoId && GISCUS.categoryId;
+const enabled = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
 ---
 {enabled ? (
   <section class="comments">
