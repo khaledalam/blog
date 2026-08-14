@@ -1,58 +1,111 @@
-# blog-views — Cloudflare Worker view counter
+# blog-views — Cloudflare Worker backend
 
-Free per-post view counter for blog.khaledalam.net (Cloudflare Workers + KV free tier).
-Seeded with the 77,516 views migrated from the WordPress Post Views Counter plugin.
+Free backend for blog.khaledalam.net: **per-post view counts** and
+**self-hosted comments**. Cloudflare Workers + D1, all on the free tier.
 
-## One-time deploy
+View counts were seeded with the 77,516 views migrated from the WordPress Post
+Views Counter plugin.
+
+## Why D1 and not KV
+
+It used to be KV. **KV has no atomic increment**, so the Worker did
+read-then-write and simultaneous visitors overwrote each other — ten concurrent
+hits recorded **one** view. Every sequential test passed, which is why it went
+unnoticed for a while.
+
+D1 does the whole increment in one statement, so concurrent visits each count:
+
+```sql
+INSERT INTO views (slug, count) VALUES (?, 1)
+ON CONFLICT(slug) DO UPDATE SET count = count + 1
+RETURNING count
+```
+
+Always test a counter change **concurrently**, never sequentially:
+
+```bash
+for i in $(seq 1 25); do curl -sX POST "$API/hit/__test__" >/dev/null & done; wait
+curl -s "$API/get/__test__"      # must be exactly 25
+```
+
+The KV namespace is still bound but unused — it holds the original migrated
+counts as a fallback. Don't delete it yet.
+
+## Deploy
 
 ```bash
 cd counter
-npm install
+npx wrangler login     # browser OAuth; cannot be done from the CLI
+./deploy.sh            # everything else is automated
+```
 
-# 1. Log in to Cloudflare (opens a browser; run this yourself in the terminal)
-npx wrangler login
+`deploy.sh` creates the KV namespace, writes the id into `wrangler.toml`, seeds,
+deploys, and prints the URL for `COUNTER_URL` in `../src/config.ts`.
 
-# 2. Create the KV namespace, then paste the printed id into wrangler.toml
-#    (replace REPLACE_WITH_KV_NAMESPACE_ID)
-npx wrangler kv namespace create VIEWS
+For a D1 schema change:
 
-# 3. Seed the existing view counts (31 posts, 77,516 views)
-npx wrangler kv bulk put seed-kv.json --binding=VIEWS
-
-# 4. Deploy the worker
+```bash
+npx wrangler d1 execute blog-views --remote --file=schema.sql           # views
+npx wrangler d1 execute blog-views --remote --file=comments-schema.sql  # comments
 npx wrangler deploy
 ```
-
-`wrangler deploy` prints the live URL, e.g.
-`https://blog-views.<your-subdomain>.workers.dev`.
-
-## Wire it into the blog
-
-Put that URL in `site/src/config.ts`:
-
-```ts
-export const COUNTER_URL = 'https://blog-views.<your-subdomain>.workers.dev';
-```
-
-Commit + push — GitHub Actions rebuilds the blog and the live counter goes active.
-Until then, each post shows its static seeded count (no increment).
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/hit/:slug`  | increment, return `{ slug, views }` |
-| GET  | `/get/:slug`  | read without incrementing |
-| GET  | `/get?slugs=a,b` | batch read |
+| POST | `/hit/:slug` | increment, return `{ slug, views }` |
+| GET | `/get/:slug` | read without incrementing |
+| GET | `/get?slugs=a,b` | batch read (used by the blog index) |
+| GET | `/comments/:slug` | **approved** comments only |
+| POST | `/comments/:slug` | submit `{ name, body, token, hp }` → stored **pending** |
+| GET | `/admin` | moderation UI (token-gated, `noindex`) |
+| GET | `/admin/list` | pending + approved, needs `X-Admin-Token` |
+| POST | `/admin/approve/:id` | needs `X-Admin-Token` |
+| POST | `/admin/delete/:id` | needs `X-Admin-Token` |
+
+**Never `decodeURIComponent` in the batch route.** `searchParams.get()` already
+decodes once, and stored slugs are themselves percent-encoded for Arabic posts.
+Decoding twice produced keys that never matched, so Arabic posts read back as 0.
+
+## Comments
+
+Self-hosted, no GitHub account required. **Every comment is held for approval** —
+nothing a reader submits is publicly visible until approved at `/admin`.
+
+Spam defence is three independent layers:
+
+1. **Turnstile** (managed mode) — sitekey is public in `src/config.ts`, secret is
+   the Worker secret `TURNSTILE_SECRET`
+2. **Honeypot** — a `website` field positioned off-screen rather than
+   `display:none`, which bots skip; a filled one is silently swallowed
+3. **Rate limit** — 5 comments per IP per 10 minutes, IPs stored only as salted
+   SHA-256 hashes
+
+Comment bodies are rendered as **text nodes, never HTML**, so a comment cannot
+inject markup or script.
+
+### Secrets
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET   # from the Turnstile widget
+npx wrangler secret put ADMIN_TOKEN        # moderation password
+```
+
+Neither is in this repo. To test the comment flow without a real browser, swap in
+Cloudflare's always-pass test keys (sitekey `1x00000000000000000000AA`, secret
+`1x0000000000000000000000000000000AA`), then **restore the real ones**.
 
 ## Free-tier limits
 
-Workers free tier = 100,000 requests/day; KV free tier = 100,000 reads + 1,000
-writes/day, 1 GB storage. One write per page view; the blog's traffic is far
-under this.
+Workers 100,000 requests/day. D1 5 GB storage, 5 M rows read/day, 100 k rows
+written/day. One row written per counted view; the blog is far under this.
 
-## Verify seeded data
+## Verify data
 
 ```bash
-npx wrangler kv key get "v:contributing-to-php-core" --binding=VIEWS   # -> 1573
+npx wrangler d1 execute blog-views --remote \
+  --command="SELECT COUNT(*) posts, SUM(count) total FROM views;"   # 32 / 77528+
+npx wrangler d1 execute blog-views --remote \
+  --command="SELECT approved, COUNT(*) FROM comments GROUP BY approved;"
 ```
