@@ -34,7 +34,7 @@ export const PERSON = {
 // Cloudflare Worker that stores/returns per-post view counts (see /counter).
 // Set to the deployed Worker URL, e.g. https://blog-views.<sub>.workers.dev
 // Leave empty to disable the live counter (falls back to the static seed value).
-export const COUNTER_URL = 'https://blog-views.blog-views.workers.dev';
+export const COUNTER_URL = 'https://views.khaledalam.net';
 
 
 // Self-hosted comments live in the same Cloudflare Worker as the view counter

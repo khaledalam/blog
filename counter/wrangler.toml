@@ -15,3 +15,10 @@ database_id = "955bb326-beb1-4592-acae-770777673c11"
 [[kv_namespaces]]
 binding = "VIEWS"
 id = "3711960d008d4f35ba602f16417b0e81"
+
+# Custom domain instead of *.workers.dev: some ad blockers and corporate
+# networks block workers.dev outright, which would silently undercount views and
+# break the comment form for those readers. wrangler creates the DNS record.
+[[routes]]
+pattern = "views.khaledalam.net"
+custom_domain = true
