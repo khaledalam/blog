@@ -4,10 +4,10 @@ import { GISCUS } from '../config';
 interface Props { title: string; slug: string; }
 const { title, slug } = Astro.props;
 
-// giscus needs its GitHub App installed on the repo (browser-only OAuth). Until
-// that happens it renders "giscus is not installed on this repository" to every
-// reader, so we fall back to plain GitHub Discussions links, which need no app
-// and work today. Flip GISCUS.enabled once the app is installed.
+// giscus needs its GitHub App installed on the repo. If it is ever removed,
+// giscus renders "giscus is not installed on this repository" to every reader —
+// set GISCUS.enabled to false and this falls back to plain GitHub Discussions
+// links, which need no app.
 const giscusOn = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
 
 // "General" rather than the giscus category: Announcements is maintainer-only,

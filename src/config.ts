@@ -36,22 +36,20 @@ export const PERSON = {
 // Leave empty to disable the live counter (falls back to the static seed value).
 export const COUNTER_URL = 'https://blog-views.blog-views.workers.dev';
 
-// giscus (GitHub Discussions-backed comments). Fill after enabling Discussions
-// on the repo and installing the giscus GitHub App: https://giscus.app
+// giscus (GitHub Discussions-backed comments), backed by GitHub Discussions on
+// khaledalam/blog. Verified working: repo public, Discussions enabled, repoId
+// and categoryId match the GitHub API, and the giscus GitHub App is installed.
 //
-// `enabled` is the last switch to flip. Everything else below is already
-// correct and verified against the GitHub API (repo public, Discussions on,
-// repoId and categoryId both match). The only remaining step is installing the
-// giscus GitHub App on khaledalam/blog — a browser-only authorization at
-// https://github.com/apps/giscus that cannot be done from the CLI.
+// Threads are created lazily — giscus opens a discussion the first time someone
+// comments on a post, so `{"error":"Discussion not found"}` from the giscus API
+// is normal for a post nobody has commented on yet. The error to watch for is
+// "giscus is not installed on this repository", which means the App was removed.
 //
-// Until that app is installed, giscus answers every request with
-//   {"error":"giscus is not installed on this repository"}
-// and renders that as a visible error box on all 32 post pages. So this stays
-// false: no comments section is better than a broken one. Flip to true and push
-// once the app is installed.
+// Setting `enabled: false` swaps every post over to plain GitHub Discussions
+// links instead (see components/Comments.astro) — a safe fallback if the App
+// ever goes away.
 export const GISCUS = {
-  enabled: false,
+  enabled: true,
   repo: 'khaledalam/blog',
   repoId: 'R_kgDOTr9qUw',
   category: 'Announcements',
@@ -60,5 +58,6 @@ export const GISCUS = {
   reactionsEnabled: '1',
   theme: 'preferred_color_scheme',
 };
-// NOTE: comments render only after the giscus GitHub App is installed on this
-// repo — install at https://github.com/apps/giscus (one-time, browser step).
+// The giscus App install is a one-time browser step at
+// https://github.com/apps/giscus — done, and it must stay installed for
+// comments to load.
