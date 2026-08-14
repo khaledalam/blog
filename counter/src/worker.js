@@ -35,7 +35,11 @@ export default {
 
     // batch read: /get?slugs=a,b,c
     if (url.pathname === '/get' && url.searchParams.has('slugs')) {
-      const slugs = url.searchParams.get('slugs').split(',').map((s) => decodeURIComponent(s.trim())).filter(Boolean);
+      // NOTE: no decodeURIComponent here. searchParams.get() has already decoded
+      // once, which yields the stored key form (post slugs are themselves
+      // percent-encoded for Arabic posts). Decoding twice produced raw UTF-8
+      // keys that never matched, so every Arabic post read back as 0.
+      const slugs = url.searchParams.get('slugs').split(',').map((s) => s.trim()).filter(Boolean);
       const out = {};
       for (const s of slugs) out[s] = parseInt((await env.VIEWS.get(key(s))) || '0', 10);
       return new Response(JSON.stringify({ views: out }), { headers });

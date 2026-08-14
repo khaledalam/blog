@@ -16,11 +16,26 @@ const show = COUNTER_URL || seed > 0;
   <script is:inline define:vars={{ COUNTER_URL, slug, seed }}>
     (async () => {
       const el = document.currentScript.previousElementSibling;
+      // Count a reader once per post per 24h. Reloading the page re-reads the
+      // count but does not increment it, so refreshes no longer inflate views.
+      const key = `viewed:${slug}`;
+      const DAY = 86400000;
+      let counted = false;
       try {
-        const r = await fetch(`${COUNTER_URL}/hit/${encodeURIComponent(slug)}`, { method: 'POST' });
+        counted = Date.now() - Number(localStorage.getItem(key) || 0) < DAY;
+      } catch (_) { /* private mode: fall through and just count it */ }
+
+      const path = counted
+        ? `/get/${encodeURIComponent(slug)}`
+        : `/hit/${encodeURIComponent(slug)}`;
+      try {
+        const r = await fetch(`${COUNTER_URL}${path}`, { method: counted ? 'GET' : 'POST' });
         if (r.ok) {
           const { views } = await r.json();
           if (typeof views === 'number') el.textContent = `${views.toLocaleString()} views`;
+          if (!counted) {
+            try { localStorage.setItem(key, String(Date.now())); } catch (_) {}
+          }
         }
       } catch (_) { /* keep the static seed value on failure */ }
     })();

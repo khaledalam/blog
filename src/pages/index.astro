@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { SITE, PERSON } from '../config';
+import { SITE, PERSON, COUNTER_URL } from '../config';
 import posts from '../data/posts.json';
 
 const items = posts.map(p => ({
@@ -53,10 +53,32 @@ const jsonLd = [
         <div class="meta">
           <span>{fmt(p.date)}</span>
           <span>· {p.readingMinutes} min read</span>
-          {p.views > 0 && <span>· {p.views.toLocaleString()} views</span>}
+          {(COUNTER_URL || p.views > 0) && (
+            <span>· <span class="views" data-slug={p.slug}>{p.views > 0 ? `${p.views.toLocaleString()} views` : '— views'}</span></span>
+          )}
         </div>
         <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
       </li>
     ))}
   </ul>
+  {COUNTER_URL && (
+    <script is:inline define:vars={{ COUNTER_URL }}>
+      // One batch read fills every card. Read-only: the index never increments,
+      // only the post page does.
+      (async () => {
+        const els = [...document.querySelectorAll('.post-list .views[data-slug]')];
+        if (!els.length) return;
+        const slugs = els.map(e => encodeURIComponent(e.dataset.slug)).join(',');
+        try {
+          const r = await fetch(`${COUNTER_URL}/get?slugs=${slugs}`);
+          if (!r.ok) return;
+          const { views } = await r.json();
+          for (const el of els) {
+            const n = views?.[el.dataset.slug];
+            if (typeof n === 'number') el.textContent = `${n.toLocaleString()} views`;
+          }
+        } catch (_) { /* leave the static seed values in place */ }
+      })();
+    </script>
+  )}
 </Base>
