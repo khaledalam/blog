@@ -7,4 +7,4 @@ compatibility_date = "2025-01-01"
 # (see counter/README.md). The placeholder lets the file be committed.
 [[kv_namespaces]]
 binding = "VIEWS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "3711960d008d4f35ba602f16417b0e81"
