@@ -1,9 +1,14 @@
-// blog.khaledalam.net view counter — Cloudflare Worker + KV.
+// blog.khaledalam.net view counter — Cloudflare Worker + D1.
 // Routes:
 //   POST /hit/:slug  -> increment and return { slug, views }
 //   GET  /get/:slug  -> return { slug, views } without incrementing
 //   GET  /get?slugs=a,b,c -> batch read (no increment)
-// KV binding: VIEWS. Keys are stored as `v:<raw post slug>`.
+//
+// Storage is D1, not KV, and that is deliberate. KV has no atomic increment:
+// the old implementation did read-then-write, so simultaneous visitors all read
+// the same number and overwrote each other. Ten concurrent hits recorded one
+// view. D1 does the whole increment in a single SQL statement, so concurrent
+// visits each count exactly once.
 
 const ALLOW = new Set([
   'https://blog.khaledalam.net',
@@ -23,40 +28,57 @@ function corsHeaders(origin) {
   };
 }
 
-const key = (slug) => `v:${slug}`;
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
     const headers = { ...corsHeaders(origin), 'Content-Type': 'application/json' };
+    const db = env.blog_views;
 
     if (request.method === 'OPTIONS') return new Response(null, { headers });
 
-    // batch read: /get?slugs=a,b,c
-    if (url.pathname === '/get' && url.searchParams.has('slugs')) {
-      // NOTE: no decodeURIComponent here. searchParams.get() has already decoded
-      // once, which yields the stored key form (post slugs are themselves
-      // percent-encoded for Arabic posts). Decoding twice produced raw UTF-8
-      // keys that never matched, so every Arabic post read back as 0.
-      const slugs = url.searchParams.get('slugs').split(',').map((s) => s.trim()).filter(Boolean);
-      const out = {};
-      for (const s of slugs) out[s] = parseInt((await env.VIEWS.get(key(s))) || '0', 10);
-      return new Response(JSON.stringify({ views: out }), { headers });
+    try {
+      // batch read: /get?slugs=a,b,c
+      // No decodeURIComponent — searchParams.get() has already decoded once, and
+      // the stored slugs are themselves percent-encoded for Arabic posts.
+      if (url.pathname === '/get' && url.searchParams.has('slugs')) {
+        const slugs = url.searchParams.get('slugs').split(',').map((s) => s.trim()).filter(Boolean);
+        const out = {};
+        if (slugs.length) {
+          const holes = slugs.map(() => '?').join(',');
+          const { results } = await db
+            .prepare(`SELECT slug, count FROM views WHERE slug IN (${holes})`)
+            .bind(...slugs)
+            .all();
+          for (const s of slugs) out[s] = 0;
+          for (const r of results) out[r.slug] = r.count;
+        }
+        return new Response(JSON.stringify({ views: out }), { headers });
+      }
+
+      const m = url.pathname.match(/^\/(hit|get)\/(.+)$/);
+      if (!m) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
+
+      const action = m[1];
+      const slug = decodeURIComponent(m[2]);
+
+      if (action === 'hit' && request.method === 'POST') {
+        // Single atomic statement: no read-modify-write race.
+        const row = await db
+          .prepare(
+            `INSERT INTO views (slug, count) VALUES (?, 1)
+             ON CONFLICT(slug) DO UPDATE SET count = count + 1
+             RETURNING count`,
+          )
+          .bind(slug)
+          .first();
+        return new Response(JSON.stringify({ slug, views: row?.count ?? 0 }), { headers });
+      }
+
+      const row = await db.prepare('SELECT count FROM views WHERE slug = ?').bind(slug).first();
+      return new Response(JSON.stringify({ slug, views: row?.count ?? 0 }), { headers });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: 'counter unavailable' }), { status: 500, headers });
     }
-
-    const m = url.pathname.match(/^\/(hit|get)\/(.+)$/);
-    if (!m) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers });
-
-    const action = m[1];
-    const slug = decodeURIComponent(m[2]);
-    const k = key(slug);
-    let n = parseInt((await env.VIEWS.get(k)) || '0', 10);
-
-    if (action === 'hit' && request.method === 'POST') {
-      n += 1;
-      await env.VIEWS.put(k, String(n));
-    }
-    return new Response(JSON.stringify({ slug, views: n }), { headers });
   },
 };

@@ -16,13 +16,14 @@ const show = COUNTER_URL || seed > 0;
   <script is:inline define:vars={{ COUNTER_URL, slug, seed }}>
     (async () => {
       const el = document.currentScript.previousElementSibling;
-      // Count a reader once per post per 24h. Reloading the page re-reads the
-      // count but does not increment it, so refreshes no longer inflate views.
+      // A visit counts once per post per 10 minutes, per browser. Reloading
+      // inside the window re-reads the count without incrementing; coming back
+      // after it counts as a fresh visit.
       const key = `viewed:${slug}`;
-      const DAY = 86400000;
+      const WINDOW = 10 * 60 * 1000;
       let counted = false;
       try {
-        counted = Date.now() - Number(localStorage.getItem(key) || 0) < DAY;
+        counted = Date.now() - Number(localStorage.getItem(key) || 0) < WINDOW;
       } catch (_) { /* private mode: fall through and just count it */ }
 
       const path = counted

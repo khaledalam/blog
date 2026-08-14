@@ -2,9 +2,16 @@ name = "blog-views"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
 
-# KV namespace holding per-post view counts.
-# The `id` below is filled in by `wrangler kv namespace create VIEWS`
-# (see counter/README.md). The placeholder lets the file be committed.
+# D1 holds the per-post view counts. It replaced KV because KV cannot increment
+# atomically — concurrent visitors raced and lost writes (10 simultaneous hits
+# recorded 1 view). See src/worker.js.
+[[d1_databases]]
+binding = "blog_views"
+database_name = "blog-views"
+database_id = "955bb326-beb1-4592-acae-770777673c11"
+
+# KV is kept bound but unused, so the original migrated counts remain recoverable
+# until the D1 numbers have been running long enough to trust.
 [[kv_namespaces]]
 binding = "VIEWS"
 id = "3711960d008d4f35ba602f16417b0e81"
