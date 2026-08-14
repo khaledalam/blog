@@ -95,6 +95,37 @@ the author and records the outcome — verified 13 Aug 2026:
 - Vote: 17 yes / 2 no / 6 abstain (two-thirds threshold required)
 - Merged: `b16cab7da8e5748b173542da42fc8b602ae59dea`, php-src, 13 Aug 2026
 
+### Paste-ready QuickStatements
+
+Submitting needs a logged-in Wikidata account, so it cannot be automated from a
+CLI. The fastest route is QuickStatements v2 (<https://quickstatements.toolforge.org>):
+log in, choose "Import commands", paste the block below, run.
+
+Replace `LAST` handling as-is — QuickStatements creates the item and then applies
+each statement to it.
+
+```
+CREATE
+LAST|Len|"Khaled Alam"
+LAST|Lar|"خالد علام"
+LAST|Den|"software engineer and PHP core contributor"
+LAST|Dar|"مهندس برمجيات ومساهم في نواة PHP"
+LAST|P31|Q5
+LAST|P106|Q82594
+LAST|P856|"https://khaledalam.net"
+LAST|P2037|"khaledalam"
+LAST|P6634|"khaledalam"
+LAST|P2002|"KhaledAlamXYZ"
+```
+
+Then add the PHP RFC as notable work with its source, in the item UI:
+
+- `P800` (notable work) → PHP (Q59), qualified/referenced with
+  `https://wiki.php.net/rfc/const_object_property_write`
+
+Disclose the conflict of interest on the item's talk page — permitted on
+Wikidata, and being upfront stops it reading as covert self-promotion.
+
 Expect the item to be challenged for notability regardless. If it is deleted,
 that is survivable — unlike a deleted Wikipedia article, a deleted Wikidata
 item does not leave an indexed page arguing you are not notable.

@@ -3,6 +3,10 @@
 Free backend for blog.khaledalam.net: **per-post view counts** and
 **self-hosted comments**. Cloudflare Workers + D1, all on the free tier.
 
+Served from **https://views.khaledalam.net** (a Workers custom domain) rather
+than `*.workers.dev`, which ad blockers and corporate networks routinely block —
+that would silently undercount views and break the comment form for those readers.
+
 View counts were seeded with the 77,516 views migrated from the WordPress Post
 Views Counter plugin.
 
@@ -59,7 +63,8 @@ npx wrangler deploy
 | GET | `/get?slugs=a,b` | batch read (used by the blog index) |
 | GET | `/comments/:slug` | **approved** comments only |
 | POST | `/comments/:slug` | submit `{ name, body, token, hp }` → stored **pending** |
-| GET | `/admin` | moderation UI (token-gated, `noindex`) |
+| GET | `/admin` | moderation UI + top posts (token-gated, `noindex`) |
+| GET | `/admin/feed.xml?token=` | RSS of pending comments (how you find out one arrived) |
 | GET | `/admin/list` | pending + approved, needs `X-Admin-Token` |
 | POST | `/admin/approve/:id` | needs `X-Admin-Token` |
 | POST | `/admin/delete/:id` | needs `X-Admin-Token` |
@@ -109,3 +114,19 @@ npx wrangler d1 execute blog-views --remote \
 npx wrangler d1 execute blog-views --remote \
   --command="SELECT approved, COUNT(*) FROM comments GROUP BY approved;"
 ```
+
+## Being told about new comments
+
+There is no email or webhook notification: Cloudflare Email Sending is not
+onboarded on this account (`wrangler email sending enable` returns Unauthorized
+with the current OAuth token), so it needs a Dashboard step first.
+
+Until then, subscribe a feed reader to:
+
+```
+https://views.khaledalam.net/admin/feed.xml?token=<ADMIN_TOKEN>
+```
+
+Pending comments appear as feed items, so the reader notifies you. The token is
+in the query string because feed readers cannot send headers — treat that URL as
+a secret. The `/admin` tab title also shows the pending count.

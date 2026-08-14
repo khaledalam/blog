@@ -87,9 +87,14 @@ button{cursor:pointer;border-radius:6px;border:1px solid #8884;background:transp
 button.ok{border-color:#2b8a3e;color:#2b8a3e}
 button.no{border-color:#c92a2a;color:#c92a2a}
 .pend{border-left:3px solid #f59f00}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+td,th{text-align:left;padding:.3rem .5rem;border-bottom:1px solid #8882}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.sub{color:#8a8a8a;font-size:.82rem}
 </style>
 <h1>Comment moderation</h1>
-<p><input id="t" type="password" placeholder="admin token" size="34"> <button onclick="save()">Load</button></p>
+<p><input id="t" type="password" placeholder="admin token" size="34"> <button onclick="save()">Load</button>
+<a id="feed" class="sub" href="#" hidden>subscribe to pending feed</a></p>
 <div id="out"></div>
 <script>
 const API = location.origin;
@@ -111,9 +116,21 @@ async function load(){
     '<div class="b">' + esc(c.body) + '</div>' +
     (c.approved ? '' : '<button class="ok" onclick="act(' + c.id + ',\\'approve\\')">Approve</button> ') +
     '<button class="no" onclick="act(' + c.id + ',\\'delete\\')">Delete</button></div>';
+  const top = (d.top || []).map(t =>
+    '<tr><td><a href="https://blog.khaledalam.net/' + encodeURI(t.slug) + '/" target="_blank">' + esc(decodeURIComponent(t.slug)) + '</a></td>' +
+    '<td class="n">' + t.count.toLocaleString() + '</td></tr>').join('');
   document.getElementById('out').innerHTML =
     '<h2>Pending (' + d.pending.length + ')</h2>' + (d.pending.map(row).join('') || '<p class="m">Nothing waiting.</p>') +
-    '<h2>Approved (' + d.approved.length + ')</h2>' + (d.approved.map(row).join('') || '<p class="m">None yet.</p>');
+    '<h2>Approved (' + d.approved.length + ')</h2>' + (d.approved.map(row).join('') || '<p class="m">None yet.</p>') +
+    '<h2>Top posts</h2><p class="m">' + (d.totalViews || 0).toLocaleString() + ' views across all posts.</p>' +
+    '<table><tr><th>Post</th><th class="n">Views</th></tr>' + top + '</table>';
+
+  document.title = d.pending.length
+    ? 'Comment moderation (' + d.pending.length + ')'
+    : 'Comment moderation';
+  const f = document.getElementById('feed');
+  f.href = location.origin + '/admin/feed.xml?token=' + encodeURIComponent(tok());
+  f.hidden = false;
 }
 if (tok()) load();
 </script>`;
@@ -136,6 +153,40 @@ export default {
         });
       }
 
+      // Pending-comment RSS. Feed readers cannot set headers, so the token comes
+      // in the query string — fine for a private feed, but treat that URL as the
+      // secret it is. Subscribing to this is how you find out a comment arrived,
+      // since there is no email/webhook notification.
+      if (url.pathname === '/admin/feed.xml') {
+        if (!env.ADMIN_TOKEN || !safeEqual(url.searchParams.get('token') || '', env.ADMIN_TOKEN)) {
+          return new Response('unauthorized', { status: 401 });
+        }
+        const { results } = await db
+          .prepare('SELECT id, slug, name, body, created_at FROM comments WHERE approved = 0 ORDER BY created_at DESC LIMIT 50')
+          .all();
+        const esc = (s) =>
+          String(s).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+        const items = results
+          .map(
+            (c) =>
+              `<item><title>${esc(c.name)} on ${esc(c.slug)}</title>` +
+              `<link>${url.origin}/admin</link>` +
+              `<guid isPermaLink="false">comment-${c.id}</guid>` +
+              `<pubDate>${new Date(c.created_at).toUTCString()}</pubDate>` +
+              `<description>${esc(c.body.slice(0, 500))}</description></item>`,
+          )
+          .join('');
+        return new Response(
+          `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>` +
+            `<title>Pending comments — blog.khaledalam.net</title>` +
+            `<link>${url.origin}/admin</link>` +
+            `<description>Comments waiting for approval (${results.length})</description>` +
+            items +
+            `</channel></rss>`,
+          { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow' } },
+        );
+      }
+
       if (url.pathname.startsWith('/admin/')) {
         if (!env.ADMIN_TOKEN || !safeEqual(request.headers.get('X-Admin-Token') || '', env.ADMIN_TOKEN)) {
           return json({ error: 'unauthorized' }, 401);
@@ -144,9 +195,15 @@ export default {
           const { results } = await db
             .prepare('SELECT id, slug, name, body, created_at, approved FROM comments ORDER BY created_at DESC LIMIT 500')
             .all();
+          const top = await db
+            .prepare('SELECT slug, count FROM views ORDER BY count DESC LIMIT 15')
+            .all();
+          const total = await db.prepare('SELECT SUM(count) AS n FROM views').first();
           return json({
             pending: results.filter((c) => !c.approved),
             approved: results.filter((c) => c.approved),
+            top: top.results,
+            totalViews: total?.n ?? 0,
           });
         }
         const m = url.pathname.match(/^\/admin\/(approve|delete)\/(\d+)$/);
