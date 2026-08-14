@@ -36,28 +36,15 @@ export const PERSON = {
 // Leave empty to disable the live counter (falls back to the static seed value).
 export const COUNTER_URL = 'https://blog-views.blog-views.workers.dev';
 
-// giscus (GitHub Discussions-backed comments), backed by GitHub Discussions on
-// khaledalam/blog. Verified working: repo public, Discussions enabled, repoId
-// and categoryId match the GitHub API, and the giscus GitHub App is installed.
+
+// Self-hosted comments live in the same Cloudflare Worker as the view counter
+// (COUNTER_URL above), backed by D1. No GitHub account is needed to comment.
 //
-// Threads are created lazily — giscus opens a discussion the first time someone
-// comments on a post, so `{"error":"Discussion not found"}` from the giscus API
-// is normal for a post nobody has commented on yet. The error to watch for is
-// "giscus is not installed on this repository", which means the App was removed.
+// Every comment is stored as PENDING and is invisible to readers until it is
+// approved at {COUNTER_URL}/admin — paste the admin token there (Worker secret
+// ADMIN_TOKEN). Spam protection is Cloudflare Turnstile + a honeypot field +
+// a per-IP rate limit of 5 comments per 10 minutes.
 //
-// Setting `enabled: false` swaps every post over to plain GitHub Discussions
-// links instead (see components/Comments.astro) — a safe fallback if the App
-// ever goes away.
-export const GISCUS = {
-  enabled: true,
-  repo: 'khaledalam/blog',
-  repoId: 'R_kgDOTr9qUw',
-  category: 'Announcements',
-  categoryId: 'DIC_kwDOTr9qU84DCjOl',
-  mapping: 'pathname',
-  reactionsEnabled: '1',
-  theme: 'preferred_color_scheme',
-};
-// The giscus App install is a one-time browser step at
-// https://github.com/apps/giscus — done, and it must stay installed for
-// comments to load.
+// The sitekey is public by design; the matching secret is the Worker secret
+// TURNSTILE_SECRET and is never in this repo.
+export const TURNSTILE_SITEKEY = '0x4AAAAAAEPjUuiZjC0s1BzH';

@@ -1,47 +1,127 @@
 ---
-import { GISCUS } from '../config';
+import { COUNTER_URL, TURNSTILE_SITEKEY } from '../config';
 
 interface Props { title: string; slug: string; }
-const { title, slug } = Astro.props;
+const { slug } = Astro.props;
 
-// giscus needs its GitHub App installed on the repo. If it is ever removed,
-// giscus renders "giscus is not installed on this repository" to every reader —
-// set GISCUS.enabled to false and this falls back to plain GitHub Discussions
-// links, which need no app.
-const giscusOn = GISCUS.enabled && GISCUS.repoId && GISCUS.categoryId;
-
-// "General" rather than the giscus category: Announcements is maintainer-only,
-// so readers could not open a thread there.
-const newThread =
-  `https://github.com/${GISCUS.repo}/discussions/new` +
-  `?category=general&title=${encodeURIComponent(title)}` +
-  `&body=${encodeURIComponent(`Re: https://blog.khaledalam.net/${slug}/\n\n`)}`;
-const allThreads = `https://github.com/${GISCUS.repo}/discussions`;
+// Self-hosted comments: Cloudflare Worker + D1, no GitHub account needed.
+// Every submission is held for approval, so nothing appears publicly until it
+// is approved from /admin on the Worker.
+const enabled = Boolean(COUNTER_URL);
 ---
-<section class="comments">
-  <h2>Comments</h2>
-  {giscusOn ? (
-    <script
-      src="https://giscus.app/client.js"
-      data-repo={GISCUS.repo}
-      data-repo-id={GISCUS.repoId}
-      data-category={GISCUS.category}
-      data-category-id={GISCUS.categoryId}
-      data-mapping={GISCUS.mapping}
-      data-strict="1"
-      data-reactions-enabled={GISCUS.reactionsEnabled}
-      data-emit-metadata="0"
-      data-input-position="top"
-      data-theme={GISCUS.theme}
-      data-lang="en"
-      crossorigin="anonymous"
-      async
-    ></script>
-  ) : (
-    <p class="comments-fallback">
-      <a href={newThread} target="_blank" rel="noopener">Discuss this post on GitHub</a>
-      <span> · </span>
-      <a href={allThreads} target="_blank" rel="noopener">browse all discussions</a>
-    </p>
+{enabled && (
+  <Fragment>
+  <section class="comments">
+    <h2>Comments</h2>
+
+    <ol class="comment-list" id="comment-list" data-slug={slug}></ol>
+    <p class="comment-empty" id="comment-empty" hidden>No comments yet — be the first.</p>
+
+    <form class="comment-form" id="comment-form" novalidate>
+      <label for="c-name">Name</label>
+      <input id="c-name" name="name" type="text" maxlength="60" autocomplete="name" required />
+
+      <label for="c-body">Comment</label>
+      <textarea id="c-body" name="body" rows="4" maxlength="4000" required></textarea>
+
+      {/* Honeypot: hidden from people, tempting to bots. */}
+      <div class="c-hp" aria-hidden="true">
+        <label for="c-website">Website</label>
+        <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      {TURNSTILE_SITEKEY && (
+        <div class="cf-turnstile" data-sitekey={TURNSTILE_SITEKEY} data-appearance="interaction-only" data-theme="auto"></div>
+      )}
+
+      <button type="submit" id="c-submit">Post comment</button>
+      <p class="comment-note" id="c-note" role="status" aria-live="polite"></p>
+      <p class="comment-note">Comments are reviewed before they appear.</p>
+    </form>
+  </section>
+
+  {TURNSTILE_SITEKEY && (
+    <script is:inline async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   )}
-</section>
+
+  <script is:inline define:vars={{ COUNTER_URL, slug }}>
+    (() => {
+      const list = document.getElementById('comment-list');
+      const empty = document.getElementById('comment-empty');
+      const form = document.getElementById('comment-form');
+      const note = document.getElementById('c-note');
+      const submit = document.getElementById('c-submit');
+      const api = `${COUNTER_URL}/comments/${encodeURIComponent(slug)}`;
+
+      const fmt = (ts) =>
+        new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+      // Everything is inserted as text nodes, never HTML, so a comment can
+      // never inject markup or script into the page.
+      function render(comments) {
+        list.textContent = '';
+        empty.hidden = comments.length > 0;
+        for (const c of comments) {
+          const li = document.createElement('li');
+          const meta = document.createElement('div');
+          meta.className = 'comment-meta';
+          const who = document.createElement('span');
+          who.className = 'comment-author';
+          who.textContent = c.name;
+          const when = document.createElement('time');
+          when.dateTime = new Date(c.created_at).toISOString();
+          when.textContent = fmt(c.created_at);
+          meta.append(who, document.createTextNode(' · '), when);
+          const body = document.createElement('div');
+          body.className = 'comment-body';
+          body.textContent = c.body;
+          li.append(meta, body);
+          list.append(li);
+        }
+      }
+
+      async function load() {
+        try {
+          const r = await fetch(api);
+          if (!r.ok) return;
+          const d = await r.json();
+          render(d.comments || []);
+        } catch (_) { /* leave the list empty */ }
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = form.name.value.trim();
+        const body = form.body.value.trim();
+        if (!name || !body) { note.textContent = 'Please fill in your name and a comment.'; return; }
+
+        submit.disabled = true;
+        note.textContent = 'Sending…';
+        const token = form.querySelector('[name="cf-turnstile-response"]')?.value || '';
+
+        try {
+          const r = await fetch(api, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, body, token, hp: form.website.value }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok) {
+            form.reset();
+            note.textContent = 'Thanks — your comment is awaiting review.';
+          } else {
+            note.textContent = d.error || 'Something went wrong. Please try again.';
+          }
+        } catch (_) {
+          note.textContent = 'Could not reach the server. Please try again.';
+        } finally {
+          submit.disabled = false;
+          if (window.turnstile) { try { window.turnstile.reset(); } catch (_) {} }
+        }
+      });
+
+      load();
+    })();
+  </script>
+  </Fragment>
+)}

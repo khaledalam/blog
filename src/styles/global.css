@@ -88,8 +88,49 @@ article h3 { font-size: 1.15rem; margin-top: 1.8rem; }
 [dir="rtl"] pre, [dir="rtl"] code { direction: ltr; text-align: left; }
 
 .comments { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
-.comments h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
-.comments-fallback { color: var(--muted); font-size: .9rem; margin: 0; }
+.comments h2 { font-size: 1.05rem; margin: 0 0 .8rem; }
+
+.comment-list { list-style: none; padding: 0; margin: 0 0 1.5rem; }
+.comment-list li { padding: .85rem 0; border-bottom: 1px solid var(--border); }
+.comment-list li:first-child { border-top: 1px solid var(--border); }
+.comment-meta { color: var(--muted); font-size: .8rem; }
+.comment-author { color: var(--fg); font-weight: 600; }
+.comment-body { margin-top: .35rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-empty { color: var(--muted); font-size: .9rem; margin: 0 0 1.5rem; }
+
+.comment-form { display: grid; gap: .35rem; max-width: 34rem; }
+.comment-form label { font-size: .82rem; color: var(--muted); }
+.comment-form input[type="text"],
+.comment-form textarea {
+  font: inherit;
+  padding: .5rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card, transparent);
+  color: var(--fg);
+  width: 100%;
+}
+.comment-form textarea { resize: vertical; }
+.comment-form button {
+  font: inherit;
+  justify-self: start;
+  margin-top: .5rem;
+  padding: .45rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+.comment-form button:hover:not(:disabled) { border-color: currentColor; }
+.comment-form button:disabled { opacity: .55; cursor: default; }
+.comment-note { color: var(--muted); font-size: .8rem; margin: .35rem 0 0; }
+.cf-turnstile { margin-top: .6rem; }
+
+/* Honeypot — off-screen rather than display:none, which some bots skip. */
+.c-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+[dir="rtl"] .comment-form button { justify-self: end; }
 
 .related { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
 .related h2 { font-size: 1.05rem; margin: 0 0 .75rem; }
