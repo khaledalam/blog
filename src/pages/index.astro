@@ -90,7 +90,9 @@ const jsonLd = [
             </div>
           </div>
           {p.thumb
-            ? <img class="thumb" src={i === 0 ? p.large : p.thumb} alt={p.heroAlt} width={i === 0 ? 1200 : 132} height={i === 0 ? 630 : 88}
+            ? <img class="thumb" src={i === 0 ? p.large : p.thumb}
+                srcset={i === 0 && p.thumb !== p.large ? `${p.thumb} 480w, ${p.large} 1440w` : undefined}
+                sizes={i === 0 ? '(max-width: 760px) 100vw, 720px' : undefined} alt={p.heroAlt} width={i === 0 ? 1200 : 132} height={i === 0 ? 630 : 88}
                 loading={i < 3 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async" />
                 : null}
         </a>

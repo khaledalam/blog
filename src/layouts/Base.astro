@@ -112,7 +112,9 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     {ogAlt && <meta name="twitter:image:alt" content={ogAlt} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <!-- Non-blocking: text renders at once in the metric-matched fallback, then swaps to Inter without shifting. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
     <script is:inline>
       // Apply the saved theme before first paint (no flash); otherwise follow the system.
       try { const t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (_) {}
