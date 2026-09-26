@@ -4,7 +4,10 @@
 
 export const SITE = {
   title: 'Khaled Alam Blog',
-  description: 'Software engineering, PHP internals, AI, and side projects by Khaled Alam.',
+  // The index <title>; post pages use each post's seoTitle.
+  homeTitle: 'Khaled Alam Blog: PHP Internals, AI and Software Engineering',
+  description:
+    'Articles by Khaled Alam on PHP core and RFCs, Laravel and Symfony, React, AI and LLM tools, and the side projects he builds and ships.',
   url: 'https://blog.khaledalam.net',
   author: 'Khaled Alam',
   authorUrl: 'https://khaledalam.net',

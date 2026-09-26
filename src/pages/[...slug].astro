@@ -4,6 +4,7 @@ import Views from '../components/Views.astro';
 import Comments from '../components/Comments.astro';
 import { SITE, PERSON, COUNTER_URL } from '../config';
 import posts from '../data/posts.json';
+import { rewriteBody, size, webp } from '../lib/images';
 
 export function getStaticPaths() {
   return posts.map(p => ({
@@ -17,7 +18,27 @@ export function getStaticPaths() {
 const { post } = Astro.props;
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-const canonical = new URL(`/${post.slug}/`, SITE.url).href;
+// Upper-case %XX so canonical, og:url and JSON-LD match the sitemap byte for byte (Arabic slugs).
+const canonical = new URL(`/${post.slug}/`, SITE.url).href.replace(/%[0-9a-f]{2}/g, s => s.toUpperCase());
+
+// Body: real image sizes, lazy loading, WebP, no repeat of the hero; then heading anchors for the TOC.
+const toc: { id: string; text: string }[] = [];
+const used = new Set<string>();
+const body = (await rewriteBody(post.html, post.hero)).replace(
+  /<h([23])(\s[^>]*)?>([\s\S]*?)<\/h\1>/g,
+  (m, level, attrs = '', inner) => {
+    if (/\sid=/.test(attrs)) return m;
+    const text = inner.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#?\w+;/g, '').trim();
+    let id = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60) || 'section';
+    for (let n = 2; used.has(id); n++) id = `${id.replace(/-\d+$/, '')}-${n}`;
+    used.add(id);
+    if (level === '2') toc.push({ id, text });
+    return `<h${level}${attrs} id="${id}">${inner}<a class="anchor" href="#${id}" aria-label="Link to this section">#</a></h${level}>`;
+  },
+);
+const heroSize = post.hero ? (post.heroW && post.heroH ? { w: post.heroW, h: post.heroH } : await size(post.hero)) : null;
+const heroWebp = post.hero ? webp(post.hero) : null;
+const label = post.categories.find((c: string) => !['software', 'Uncategorized'].includes(c)) ?? 'Software';
 const showViews = Boolean(COUNTER_URL) || post.views > 0;
 
 const wordCount = post.html.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
@@ -41,7 +62,16 @@ const jsonLd = [
     url: canonical,
     headline: post.title,
     description: post.description,
-    ...(post.hero ? { image: new URL(post.hero, SITE.url).href } : {}),
+    ...(post.hero
+      ? {
+          image: {
+            '@type': 'ImageObject',
+            url: new URL(post.hero, SITE.url).href,
+            ...(heroSize ? { width: heroSize.w, height: heroSize.h } : {}),
+          },
+          thumbnailUrl: new URL(post.hero, SITE.url).href,
+        }
+      : {}),
     datePublished: post.date,
     dateModified: post.modified || post.date,
     author: { '@id': PERSON['@id'] },
@@ -83,40 +113,79 @@ const jsonLd = [
   }}
 >
   <article lang={post.lang} dir={post.dir}>
-    <a class="back" href="/" dir="ltr">← All posts</a>
+    <nav class="crumbs" aria-label="Breadcrumb" dir="ltr">
+      <a href="/">Blog</a><span aria-hidden="true">/</span><span class="label">{label}</span>
+    </nav>
     <h1>{post.title}</h1>
-    <div class="meta" dir="ltr">
-      <span>{fmt(post.date)}</span>
-      <span>· {post.readingMinutes} min read</span>
-      {showViews && <span>· <Views slug={post.slug} seed={post.views} /></span>}
+    <div class="byline" dir="ltr">
+      <img src="/avatar.webp" alt="" width="38" height="38" />
+      <div>
+        <div class="who"><a href="https://khaledalam.net" rel="author">Khaled Alam</a></div>
+        <div class="meta">
+          <time datetime={post.date}>{fmt(post.date)}</time>
+          {post.modified && post.modified.slice(0, 10) !== post.date.slice(0, 10) && (
+            <span class="dot">Updated <time datetime={post.modified}>{fmt(post.modified)}</time></span>
+          )}
+          <span class="dot">{post.readingMinutes} min read</span>
+          {showViews && <span class="dot"><Views slug={post.slug} seed={post.views} /></span>}
+        </div>
+      </div>
     </div>
     {post.hero && (
-      <img
-        class="article-hero"
-        src={post.hero}
-        alt={post.heroAlt}
-        width={post.heroW}
-        height={post.heroH}
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-      />
+      <picture>
+        {heroWebp && <source srcset={heroWebp} type="image/webp" />}
+        <img
+          class="article-hero"
+          src={post.hero}
+          alt={post.heroAlt}
+          width={heroSize?.w}
+          height={heroSize?.h}
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
     )}
-    <div class="post-body" set:html={post.html} />
+    {toc.length >= 3 && (
+      <details class="toc" open>
+        <summary>{post.lang === 'ar' ? 'المحتويات' : 'On this page'}</summary>
+        <ol>{toc.map(h => <li><a href={`#${h.id}`}>{h.text}</a></li>)}</ol>
+      </details>
+    )}
+    <div class="post-body" set:html={body} />
     {post.tags.length > 0 && (
       <div class="tags" dir="ltr">
         {post.tags.map((t: string) => <span>{t}</span>)}
       </div>
     )}
+    <aside class="author-box" dir="ltr" lang="en">
+      <img src="/avatar.webp" alt="Khaled Alam" width="56" height="56" loading="lazy" />
+      <div>
+        <p class="name">Khaled Alam</p>
+        <p>Software Specialist in Dubai with 10+ years building production SaaS, PropTech, FinTech and e-commerce products. Author of a PHP RFC merged into PHP 8.6.</p>
+        <div class="links">
+          <a href="https://khaledalam.net" rel="author">About me</a>
+          <a href="https://github.com/khaledalam" rel="me noopener" target="_blank">GitHub</a>
+          <a href="https://linkedin.com/in/khaledalam" rel="me noopener" target="_blank">LinkedIn</a>
+        </div>
+      </div>
+    </aside>
   </article>
   {related.length > 0 && (
     <nav class="related" aria-label="Related posts" lang={post.lang} dir={post.dir}>
-      <h2>Related posts</h2>
+      <h2>{post.lang === 'ar' ? 'مقالات ذات صلة' : 'Related posts'}</h2>
       <ul>
         {related.map(r => (
           <li>
-            <a href={`/${r.slug}/`}>{r.title}</a>
-            <span class="meta">{fmt(r.date)} · {r.readingMinutes} min read</span>
+            <a class="card" href={`/${r.slug}/`}>
+              <div>
+                <h3>{r.title}</h3>
+                <span class="meta">{fmt(r.date)} · {r.readingMinutes} min read</span>
+              </div>
+              {r.hero
+                ? <img class="thumb" src={webp(r.hero, true) ?? r.hero} alt="" width="96" height="64" loading="lazy" decoding="async" />
+                : <span class="thumb empty" aria-hidden="true"></span>}
+            </a>
           </li>
         ))}
       </ul>

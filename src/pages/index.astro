@@ -3,6 +3,21 @@ import Base from '../layouts/Base.astro';
 import { SITE, PERSON, COUNTER_URL } from '../config';
 import posts from '../data/posts.json';
 
+import { webp } from '../lib/images';
+
+// Topic chips filter the list in place. Each groups a few WordPress categories.
+const TOPICS: Record<string, string[]> = {
+  PHP: ['php', 'open source'],
+  'AI': ['ai'],
+  Projects: ['projects', 'saas'],
+  'How-to': ['howto', 'api', 'javascript', 'algorithm'],
+  Leadership: ['cto', 'management', 'dubai'],
+};
+const topicsOf = (cats: string[]) =>
+  Object.entries(TOPICS).filter(([, c]) => cats.some(x => c.includes(x))).map(([t]) => t);
+const labelOf = (cats: string[]) =>
+  topicsOf(cats)[0] ?? cats.find(c => !['software', 'Uncategorized'].includes(c)) ?? 'Software';
+
 const items = posts.map(p => ({
   slug: p.slug,
   title: p.title,
@@ -12,6 +27,11 @@ const items = posts.map(p => ({
   readingMinutes: p.readingMinutes,
   dir: p.dir,
   lang: p.lang,
+  thumb: p.hero ? webp(p.hero, true) ?? p.hero : null,
+  large: p.hero ? webp(p.hero) ?? p.hero : null,
+  heroAlt: p.heroAlt ?? '',
+  topics: topicsOf(p.categories),
+  label: labelOf(p.categories),
 }));
 const fmt = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -41,26 +61,53 @@ const jsonLd = [
   },
 ];
 ---
-<Base title={SITE.title} description={SITE.description} jsonLd={jsonLd}>
-  <h1 style="margin-top:2rem;">Blog</h1>
-  <p style="color:var(--muted);">
-    Software engineering, PHP internals, AI, and side projects. {items.length} posts.
-  </p>
+<Base title={SITE.homeTitle} description={SITE.description} jsonLd={jsonLd}>
+  <section class="intro">
+    <img src="/avatar.webp" alt="Khaled Alam" width="64" height="64" />
+    <div>
+      <h1>Khaled Alam's blog</h1>
+      <p>PHP internals and RFCs, AI and LLM tools, and the things I build. {items.length} posts.</p>
+    </div>
+  </section>
+  <ul class="topics" aria-label="Filter by topic">
+    <li><button type="button" data-topic="" aria-pressed="true">All</button></li>
+    {Object.keys(TOPICS).map(t => <li><button type="button" data-topic={t} aria-pressed="false">{t}</button></li>)}
+  </ul>
   <ul class="post-list">
-    {items.map(p => (
-      <li>
-        <h2><a href={`/${p.slug}/`} lang={p.lang} dir={p.dir}>{p.title}</a></h2>
-        <div class="meta">
-          <span>{fmt(p.date)}</span>
-          <span>· {p.readingMinutes} min read</span>
-          {(COUNTER_URL || p.views > 0) && (
-            <span>· <span class="views" data-slug={p.slug}>{p.views > 0 ? `${p.views.toLocaleString()} views` : '— views'}</span></span>
-          )}
-        </div>
-        <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
+    {items.map((p, i) => (
+      <li class={i === 0 ? 'featured' : undefined} data-topics={p.topics.join('|')}>
+        <a class="card" href={`/${p.slug}/`}>
+          <div>
+            <span class="label">{p.label}</span>
+            <h2 lang={p.lang} dir={p.dir}>{p.title}</h2>
+            <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
+            <div class="meta">
+              <time datetime={p.date}>{fmt(p.date)}</time>
+              <span class="dot">{p.readingMinutes} min read</span>
+              {(COUNTER_URL || p.views > 0) && (
+                <span class="dot views" data-slug={p.slug}>{p.views > 0 ? `${p.views.toLocaleString()} views` : '— views'}</span>
+              )}
+            </div>
+          </div>
+          {p.thumb
+            ? <img class="thumb" src={i === 0 ? p.large : p.thumb} alt={p.heroAlt} width={i === 0 ? 1200 : 132} height={i === 0 ? 630 : 88}
+                loading={i < 3 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async" />
+            : <span class="thumb empty" aria-hidden="true"></span>}
+        </a>
       </li>
     ))}
   </ul>
+  <script is:inline>
+    // Topic filter: purely client-side; every post stays in the HTML for crawlers.
+    document.querySelector('.topics').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      for (const x of document.querySelectorAll('.topics button')) x.setAttribute('aria-pressed', String(x === b));
+      for (const li of document.querySelectorAll('.post-list > li')) {
+        li.hidden = !!b.dataset.topic && !li.dataset.topics.split('|').includes(b.dataset.topic);
+      }
+    });
+  </script>
   {COUNTER_URL && (
     <script is:inline define:vars={{ COUNTER_URL }}>
       // One batch read fills every card. Read-only: the index never increments,

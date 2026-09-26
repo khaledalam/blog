@@ -40,6 +40,8 @@ const {
 const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.png`;
 // og-default.png is 1200x630; only override when the page supplied its own hero.
 const [ogW, ogH] = ogImage && imageW && imageH ? [imageW, imageH] : [1200, 630];
+// og-default.png is the blog's title card; describe it when a page has no hero of its own.
+const ogAlt = imageAlt || (ogImage ? null : `${SITE.title}: ${SITE.description}`);
 const ogLocale = lang === 'ar' ? 'ar_AR' : 'en_US';
 
 // One @graph per page: the site, the person behind it, then whatever the page
@@ -78,7 +80,8 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
         ? 'noindex, follow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
     />
-    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href={`${SITE.url}/feed.xml`} />
     <meta property="og:type" content={type} />
@@ -90,7 +93,7 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     <meta property="og:image" content={img} />
     <meta property="og:image:width" content={String(ogW)} />
     <meta property="og:image:height" content={String(ogH)} />
-    {imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+    {ogAlt && <meta property="og:image:alt" content={ogAlt} />}
     {articleMeta?.published && (
       <meta property="article:published_time" content={articleMeta.published} />
     )}
@@ -106,7 +109,14 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={img} />
-    {imageAlt && <meta name="twitter:image:alt" content={imageAlt} />}
+    {ogAlt && <meta name="twitter:image:alt" content={ogAlt} />}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <script is:inline>
+      // Apply the saved theme before first paint (no flash); otherwise follow the system.
+      try { const t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (_) {}
+    </script>
     <link rel="icon" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <script type="application/ld+json" set:html={jsonLdText} is:inline />
@@ -114,11 +124,17 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
   <body>
     <header class="site-header">
       <div class="wrap">
-        <a class="brand" href="/">Khaled Alam</a>
-        <nav>
-          <a href="https://khaledalam.net">Portfolio</a>
-          <a href="/">Blog</a>
+        <a class="brand" href="/">
+          <img src="/avatar.webp" alt="" width="30" height="30" />
+          <span>Khaled Alam</span>
+        </a>
+        <nav aria-label="Site">
+          <a href="https://khaledalam.net" rel="author">About</a>
+          <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Blog</a>
           <a href="/feed.xml">RSS</a>
+          <button class="theme-toggle" type="button" aria-label="Toggle dark mode" onclick="toggleTheme()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+          </button>
         </nav>
       </div>
     </header>
@@ -127,10 +143,22 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     </main>
     <footer class="site-footer">
       <div class="wrap">
-        © {new Date().getFullYear()} {SITE.author} ·
-        <a href="https://khaledalam.net">khaledalam.net</a> ·
-        <a href="/feed.xml">RSS</a>
+        <span>© {new Date().getFullYear()} {SITE.author}</span>
+        <nav aria-label="Elsewhere">
+          <a href="https://khaledalam.net" rel="author">About</a>
+          <a href="https://github.com/khaledalam" rel="me noopener" target="_blank">GitHub</a>
+          <a href="https://linkedin.com/in/khaledalam" rel="me noopener" target="_blank">LinkedIn</a>
+          <a href="/feed.xml">RSS</a>
+        </nav>
       </div>
     </footer>
+    <script is:inline>
+      function toggleTheme() {
+        const root = document.documentElement;
+        const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        root.dataset.theme = dark ? 'light' : 'dark';
+        try { localStorage.setItem('theme', root.dataset.theme); } catch (_) {}
+      }
+    </script>
   </body>
 </html>
