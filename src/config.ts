@@ -37,6 +37,9 @@ export const PERSON = {
 // Cloudflare Worker that stores/returns per-post view counts (see /counter).
 // Set to the deployed Worker URL, e.g. https://blog-views.<sub>.workers.dev
 // Leave empty to disable the live counter (falls back to the static seed value).
+// Google Analytics 4 (blog.khaledalam.net property). Empty disables it.
+export const GA_ID = 'G-4Z0H4Y76Y0';
+
 export const COUNTER_URL = 'https://views.khaledalam.net';
 
 

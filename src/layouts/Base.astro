@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { SITE, PERSON } from '../config';
+import { SITE, PERSON, GA_ID } from '../config';
 
 interface Props {
   title: string;
@@ -120,6 +120,24 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     <link rel="icon" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <script type="application/ld+json" set:html={jsonLdText} is:inline />
+    {GA_ID && (
+      <script is:inline define:vars={{ GA_ID }}>
+        // Google Analytics, loaded after the page so it never slows rendering.
+        // Skipped for visitors who send Do Not Track or Global Privacy Control.
+        if (navigator.doNotTrack !== '1' && !navigator.globalPrivacyControl) {
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () { dataLayer.push(arguments); };
+          gtag('js', new Date());
+          gtag('config', GA_ID);
+          addEventListener('load', () => {
+            const s = document.createElement('script');
+            s.async = true;
+            s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+            document.head.appendChild(s);
+          });
+        }
+      </script>
+    )}
   </head>
   <body>
     <header class="site-header">
