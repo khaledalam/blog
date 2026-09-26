@@ -76,7 +76,7 @@ const jsonLd = [
   <ul class="post-list">
     {items.map((p, i) => (
       <li class={i === 0 ? 'featured' : undefined} data-topics={p.topics.join('|')}>
-        <a class="card" href={`/${p.slug}/`}>
+        <a class={p.thumb ? 'card' : 'card no-thumb'} href={`/${p.slug}/`}>
           <div>
             <span class="label">{p.label}</span>
             <h2 lang={p.lang} dir={p.dir}>{p.title}</h2>
@@ -92,7 +92,7 @@ const jsonLd = [
           {p.thumb
             ? <img class="thumb" src={i === 0 ? p.large : p.thumb} alt={p.heroAlt} width={i === 0 ? 1200 : 132} height={i === 0 ? 630 : 88}
                 loading={i < 3 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async" />
-            : <span class="thumb empty" aria-hidden="true"></span>}
+                : null}
         </a>
       </li>
     ))}

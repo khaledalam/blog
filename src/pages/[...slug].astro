@@ -177,14 +177,14 @@ const jsonLd = [
       <ul>
         {related.map(r => (
           <li>
-            <a class="card" href={`/${r.slug}/`}>
+            <a class={r.hero ? 'card' : 'card no-thumb'} href={`/${r.slug}/`}>
               <div>
                 <h3>{r.title}</h3>
                 <span class="meta">{fmt(r.date)} · {r.readingMinutes} min read</span>
               </div>
               {r.hero
                 ? <img class="thumb" src={webp(r.hero, true) ?? r.hero} alt="" width="96" height="64" loading="lazy" decoding="async" />
-                : <span class="thumb empty" aria-hidden="true"></span>}
+                : null}
             </a>
           </li>
         ))}

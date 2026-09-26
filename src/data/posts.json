@@ -392,14 +392,14 @@
   {
     "id": 190,
     "slug": "how-i-added-token-llm-cost-estimation-to-the-indexing-pipeline-of-microsoft-graphrag",
-    "title": "How I Added Token &amp; LLM Cost Estimation to the Indexing Pipeline of Microsoft GraphRAG",
+    "title": "How I Added Token & LLM Cost Estimation to the Indexing Pipeline of Microsoft GraphRAG",
     "seoTitle": "LLM Token Cost Estimation for GraphRAG Indexing",
     "description": "LLM token cost estimation for GraphRAG: how I added a feature to preview token usage and projected OpenAI costs before indexing large datasets.",
     "keyphrase": "LLM token cost estimation for GraphRAG",
     "date": "2025-05-06T19:03:30",
     "modified": "2026-07-20T14:32:50",
     "hero": "/wp-content/uploads/2025/05/442eecbc-42ec-43a8-b90b-adfb2e9e57f6.png",
-    "heroAlt": "How I Added Token &amp; LLM Cost Estimation to the Indexing Pipeline of Microsoft GraphRAG",
+    "heroAlt": "How I Added Token & LLM Cost Estimation to the Indexing Pipeline of Microsoft GraphRAG",
     "lang": "en",
     "dir": "ltr",
     "categories": [
