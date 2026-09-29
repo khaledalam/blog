@@ -61,41 +61,38 @@ const jsonLd = [
   },
 ];
 ---
-<Base title={SITE.homeTitle} description={SITE.description} jsonLd={jsonLd}>
-  <section class="intro">
-    <img src="/avatar.webp" alt="Khaled Alam" width="64" height="64" />
-    <div>
-      <h1>Khaled Alam's blog</h1>
-      <p>PHP internals and RFCs, AI and LLM tools, and the things I build. {items.length} posts.</p>
-    </div>
-  </section>
+<Base title={SITE.homeTitle} description={SITE.description} jsonLd={jsonLd} home>
+  <h1 class="page-title">Blog</h1>
+  <p class="bio">Writing on PHP internals and RFCs, AI and LLM tools, and the things I build and ship. {items.length} posts.</p>
   <ul class="topics" aria-label="Filter by topic">
     <li><button type="button" data-topic="" aria-pressed="true">All</button></li>
     {Object.keys(TOPICS).map(t => <li><button type="button" data-topic={t} aria-pressed="false">{t}</button></li>)}
   </ul>
   <ul class="post-list">
     {items.map((p, i) => (
-      <li class={i === 0 ? 'featured' : undefined} data-topics={p.topics.join('|')}>
-        <a class={p.thumb ? 'card' : 'card no-thumb'} href={`/${p.slug}/`}>
-          <div>
-            <span class="label">{p.label}</span>
-            <h2 lang={p.lang} dir={p.dir}>{p.title}</h2>
-            <p class="excerpt" lang={p.lang} dir={p.dir}>{p.description}</p>
-            <div class="meta">
-              <time datetime={p.date}>{fmt(p.date)}</time>
-              <span class="dot">{p.readingMinutes} min read</span>
-              {(COUNTER_URL || p.views > 0) && (
-                <span class="dot views" data-slug={p.slug}>{p.views > 0 ? `${p.views.toLocaleString()} views` : '— views'}</span>
-              )}
-            </div>
-          </div>
+      <li data-topics={p.topics.join('|')}>
+        <article class="project">
           {p.thumb
-            ? <img class="thumb" src={i === 0 ? p.large : p.thumb}
-                srcset={i === 0 && p.thumb !== p.large ? `${p.thumb} 480w, ${p.large} 1440w` : undefined}
-                sizes={i === 0 ? '(max-width: 760px) 100vw, 720px' : undefined} alt={p.heroAlt} width={i === 0 ? 1200 : 132} height={i === 0 ? 630 : 88}
-                loading={i < 3 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async" />
-                : null}
-        </a>
+            ? <a class="media" href={`/${p.slug}/`} tabindex="-1" aria-hidden="true">
+                <img src={p.thumb} srcset={p.thumb !== p.large ? `${p.thumb} 480w, ${p.large} 1440w` : undefined}
+                  sizes="(max-width: 760px) 100vw, 320px" alt={p.heroAlt} width="1200" height="630"
+                  loading={i < 3 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} decoding="async" />
+              </a>
+            : <a class="media tile" href={`/${p.slug}/`} tabindex="-1" aria-hidden="true"><small>Khaled Alam Blog</small><b>{p.label}</b></a>}
+          <div lang={p.lang} dir={p.dir}>
+            <h2><a href={`/${p.slug}/`}>{p.title}</a></h2>
+            <p class="venue" dir="ltr">
+              <span class="label">{p.label}</span>
+              <time datetime={p.date}>{fmt(p.date)}</time>
+              <span>{p.readingMinutes} min read</span>
+              {(COUNTER_URL || p.views > 0) && (
+                <span class="views" data-slug={p.slug}>{p.views > 0 ? `${p.views.toLocaleString()} views` : '— views'}</span>
+              )}
+            </p>
+            <p class="tldr"><span class="tag">TLDR</span>{p.description}</p>
+            <div class="links" dir="ltr"><a class="primary" href={`/${p.slug}/`}>{p.lang === 'ar' ? 'اقرأ' : 'Read'}</a></div>
+          </div>
+        </article>
       </li>
     ))}
   </ul>

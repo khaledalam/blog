@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { SITE, PERSON, GA_ID } from '../config';
+import Sidebar from '../components/Sidebar.astro';
 
 interface Props {
   title: string;
@@ -15,6 +16,7 @@ interface Props {
   imageW?: number | null;
   imageH?: number | null;
   noindex?: boolean;
+  home?: boolean;
   articleMeta?: {
     published?: string;
     modified?: string;
@@ -35,6 +37,7 @@ const {
   imageW = null,
   imageH = null,
   noindex = false,
+  home = false,
   articleMeta = null,
 } = Astro.props;
 const img = ogImage ? new URL(ogImage, SITE.url).href : `${SITE.url}/og-default.png`;
@@ -80,8 +83,8 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
         ? 'noindex, follow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
     />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href={`${SITE.url}/feed.xml`} />
     <meta property="og:type" content={type} />
@@ -112,9 +115,9 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
     {ogAlt && <meta name="twitter:image:alt" content={ogAlt} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Non-blocking: text renders at once in the metric-matched fallback, then swaps to Inter without shifting. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+    <!-- Non-blocking: text renders at once in the metric-matched fallback, then swaps to Montserrat without shifting. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" /></noscript>
     <script is:inline>
       // Apply the saved theme before first paint (no flash); otherwise follow the system.
       try { const t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (_) {}
@@ -136,37 +139,36 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
       </script>
     )}
   </head>
-  <body>
+  <body class:list={{ home }}>
+    <button class="theme-toggle" type="button" aria-label="Toggle dark mode" onclick="toggleTheme()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
+    </button>
+    <!-- Compact bar for phones on post pages; the sidebar takes over on wider screens. -->
     <header class="site-header">
-      <div class="wrap">
-        <a class="brand" href="/">
-          <img src="/avatar.webp" alt="" width="30" height="30" />
-          <span>Khaled Alam</span>
-        </a>
-        <nav aria-label="Site">
-          <a href="https://khaledalam.net" rel="author">About</a>
-          <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Blog</a>
-          <a href="/feed.xml">RSS</a>
-          <button class="theme-toggle" type="button" aria-label="Toggle dark mode" onclick="toggleTheme()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
-          </button>
-        </nav>
-      </div>
+      <a class="brand" href="/">
+        <img src="/avatar.webp" alt="" width="30" height="30" />
+        <span>Khaled Alam</span>
+      </a>
+      <nav aria-label="Site">
+        <a href="https://khaledalam.net" rel="author">About</a>
+        <a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Blog</a>
+      </nav>
     </header>
-    <main class="wrap">
-      <slot />
-    </main>
-    <footer class="site-footer">
-      <div class="wrap">
-        <span>© {new Date().getFullYear()} {SITE.author}</span>
-        <nav aria-label="Elsewhere">
-          <a href="https://khaledalam.net" rel="author">About</a>
-          <a href="https://github.com/khaledalam" rel="me noopener" target="_blank">GitHub</a>
-          <a href="https://linkedin.com/in/khaledalam" rel="me noopener" target="_blank">LinkedIn</a>
-          <a href="/feed.xml">RSS</a>
-        </nav>
-      </div>
-    </footer>
+    <div class="page">
+      <Sidebar home={home} />
+      <main>
+        <slot />
+        <footer class="site-footer">
+          <span>© {new Date().getFullYear()} {SITE.author}</span>
+          <nav aria-label="Elsewhere">
+            <a href="https://khaledalam.net" rel="author">About</a>
+            <a href="https://github.com/khaledalam" rel="me noopener" target="_blank">GitHub</a>
+            <a href="https://linkedin.com/in/khaledalam" rel="me noopener" target="_blank">LinkedIn</a>
+            <a href="/feed.xml">RSS</a>
+          </nav>
+        </footer>
+      </main>
+    </div>
     <script is:inline>
       function toggleTheme() {
         const root = document.documentElement;
