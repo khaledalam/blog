@@ -40,9 +40,9 @@ export const PERSON = {
 // Google Analytics 4 (blog.khaledalam.net property). Empty disables it.
 export const GA_ID = 'G-4Z0H4Y76Y0';
 
-// tawk.to live chat (property/widget). Empty TAWK_PROPERTY disables it.
-export const TAWK_PROPERTY = '625227b57b967b117989a8e0';
-export const TAWK_WIDGET = 'default';
+// tawk.to live chat (blog.khaledalam.net property/widget). Empty TAWK_PROPERTY disables it.
+export const TAWK_PROPERTY = '6abde10d749cc73445965166';
+export const TAWK_WIDGET = '1k3qre7vo';
 
 export const COUNTER_URL = 'https://views.khaledalam.net';
 
