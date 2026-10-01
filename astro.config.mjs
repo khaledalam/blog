@@ -16,6 +16,11 @@ export default defineConfig({
   site: 'https://blog.khaledalam.net',
   trailingSlash: 'always',          // match WordPress permalinks: /<slug>/
   build: { format: 'directory' },   // emit /<slug>/index.html
+  // Renamed posts: keep the old URLs working for backlinks.
+  redirects: {
+    '/from-prompt-engineers-to-brain-data-trainers-the-rise-of-eeg-fmri-slaves':
+      '/from-prompt-engineers-to-brain-data-trainers-the-rise-of-neural-data-labor/',
+  },
   integrations: [
     sitemap({
       filter: page => !page.includes('/404'),
