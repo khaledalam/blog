@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { SITE, PERSON, GA_ID } from '../config';
+import { SITE, PERSON, GA_ID, TAWK_PROPERTY, TAWK_WIDGET } from '../config';
 import Sidebar from '../components/Sidebar.astro';
 
 interface Props {
@@ -177,5 +177,18 @@ const jsonLdText = JSON.stringify({ '@context': 'https://schema.org', '@graph': 
         try { localStorage.setItem('theme', root.dataset.theme); } catch (_) {}
       }
     </script>
+    {TAWK_PROPERTY && (
+      <script is:inline define:vars={{ src: `https://embed.tawk.to/${TAWK_PROPERTY}/${TAWK_WIDGET}` }}>
+        // tawk.to live chat: visitor and chat alerts go to the tawk.to mobile app.
+        window.Tawk_API = window.Tawk_API || {};
+        window.Tawk_LoadStart = new Date();
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = src;
+        s.charset = 'UTF-8';
+        s.setAttribute('crossorigin', '*');
+        document.body.appendChild(s);
+      </script>
+    )}
   </body>
 </html>
